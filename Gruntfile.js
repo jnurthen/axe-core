@@ -1,25 +1,117 @@
-//jshint maxcomplexity: 12, maxstatements: false, camelcase: false
+var path = require('path');
+
+/*eslint
+camelcase: ["error", {"properties": "never"}]
+*/
 var testConfig = require('./build/test/config');
-module.exports = function (grunt) {
+
+function createWebpackConfig(input, output) {
+	return {
+		devtool: false,
+		mode: 'development',
+		entry: path.resolve(__dirname, input),
+		output: {
+			filename: 'index.js',
+			path: path.resolve(__dirname, output)
+		}
+	};
+}
+
+module.exports = function(grunt) {
 	'use strict';
 
+	grunt.loadNpmTasks('grunt-babel');
 	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-concat');
 	grunt.loadNpmTasks('grunt-contrib-connect');
 	grunt.loadNpmTasks('grunt-contrib-copy');
-	grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-watch');
-	grunt.loadNpmTasks('grunt-mocha');
+	grunt.loadNpmTasks('grunt-parallel');
+	grunt.loadNpmTasks('grunt-run');
+	grunt.loadNpmTasks('grunt-webpack');
 	grunt.loadTasks('build/tasks');
+
+	var langs;
+	if (grunt.option('lang')) {
+		langs = (grunt.option('lang') || '').split(/[,;]/g).map(function(lang) {
+			lang = lang.trim();
+			return lang !== 'en' ? '.' + lang : '';
+		});
+	} else if (grunt.option('all-lang')) {
+		var localeFiles = require('fs').readdirSync('./locales');
+		langs = localeFiles.map(function(file) {
+			return '.' + file.replace('.json', '');
+		});
+		langs.unshift(''); // Add default
+	} else {
+		langs = [''];
+	}
+
+	var webDriverTestBrowsers = [
+		'firefox',
+		'chrome',
+		'ie',
+		'chrome-mobile',
+		'safari'
+	];
+
+	process.env.NODE_NO_HTTP2 = 1; // to hide node warning - (node:18740) ExperimentalWarning: The http2 module is an experimental API.
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
-		clean: ['dist', 'tmp'],
-		nodeify: {
+		parallel: {
+			'browser-test': {
+				options: {
+					stream: true,
+					grunt: true
+				},
+				tasks: webDriverTestBrowsers.map(function(b) {
+					return 'test-webdriver:' + b;
+				})
+			}
+		},
+		'test-webdriver': (function() {
+			var tests = testConfig(grunt);
+			var options = Object.assign({}, tests.unit.options);
+			options.urls = options.urls.concat(tests.integration.options.urls);
+			var driverTests = {};
+			webDriverTestBrowsers.forEach(function(browser) {
+				driverTests[browser] = {
+					options: Object.assign(
+						{
+							browser: browser
+						},
+						options
+					)
+				};
+			});
+			return driverTests;
+		})(),
+		clean: ['dist', 'tmp', 'axe.js', 'axe.*.js'],
+		babel: {
+			options: {
+				compact: false
+			},
 			core: {
-				src: ['<%= concat.engine.dest %>'],
-				dest: 'dist/index.js'
+				files: [
+					{
+						expand: true,
+						cwd: 'lib/core',
+						src: ['**/*.js', '!imports/index.js'],
+						dest: 'tmp/core'
+					}
+				]
+			},
+			misc: {
+				files: [
+					{
+						expand: true,
+						cwd: 'tmp',
+						src: ['*.js'],
+						dest: 'tmp'
+					}
+				]
 			}
 		},
 		'update-help': {
@@ -32,24 +124,27 @@ module.exports = function (grunt) {
 		},
 		concat: {
 			engine: {
-				src: [
-					'lib/intro.stub',
-					'bower_components/simple-clone/lib/index.js',
-					'bower_components/element-matches/lib/index.js',
-					'bower_components/escape-selector/lib/index.js',
-					'bower_components/node-uuid/uuid.js',
-					'lib/core/index.js',
-					'lib/core/*/index.js',
-					'lib/core/**/index.js',
-					'lib/core/**/*.js',
-					'<%= configure.rules.dest.auto %>',
-					'lib/core/export.js',
-					'lib/outro.stub'
-				],
-				dest: 'dist/axe.js',
 				options: {
 					process: true
-				}
+				},
+				coreFiles: [
+					'tmp/core/index.js',
+					'tmp/core/*/index.js',
+					'tmp/core/**/index.js',
+					'tmp/core/**/*.js'
+				],
+				files: langs.map(function(lang, i) {
+					return {
+						src: [
+							'lib/intro.stub',
+							'<%= concat.engine.coreFiles %>',
+							// include rules / checks / commons
+							'<%= configure.rules.files[' + i + '].dest.auto %>',
+							'lib/outro.stub'
+						],
+						dest: 'axe' + lang + '.js'
+					};
+				})
 			},
 			commons: {
 				src: [
@@ -57,36 +152,83 @@ module.exports = function (grunt) {
 					'lib/commons/index.js',
 					'lib/commons/*/index.js',
 					'lib/commons/**/*.js',
-					'lib/commons/export.js',
+
+					// directories we've converted to ES Modules
+					'!lib/commons/aria/*.js',
+					'!lib/commons/forms/*.js',
+					'!lib/commons/matches/*.js',
+					'!lib/commons/text/*.js',
+					'!lib/commons/utils/*.js',
+
+					// output of webpack directories
+					'tmp/commons/**/*.js',
+
 					'lib/commons/outro.stub'
 				],
 				dest: 'tmp/commons.js'
 			}
 		},
+		webpack: {
+			commonsUtils: createWebpackConfig(
+				'lib/commons/utils/index.js',
+				'tmp/commons/utils'
+			),
+			commonsAria: createWebpackConfig(
+				'lib/commons/aria/index.js',
+				'tmp/commons/aria'
+			),
+			commonsForms: createWebpackConfig(
+				'lib/commons/forms/index.js',
+				'tmp/commons/forms'
+			),
+			commonsMatches: createWebpackConfig(
+				'lib/commons/matches/index.js',
+				'tmp/commons/matches'
+			),
+			commonsText: createWebpackConfig(
+				'lib/commons/text/index.js',
+				'tmp/commons/text'
+			)
+		},
+		'aria-supported': {
+			data: {
+				entry: 'lib/commons/aria/index.js',
+				destFile: 'doc/aria-supported.md',
+				listType: 'unsupported' // Possible values for listType: 'supported', 'unsupported', 'all'
+			}
+		},
 		configure: {
 			rules: {
-				src: ['<%= concat.commons.dest %>'],
+				tmp: 'tmp/rules.js',
 				options: {
 					tags: grunt.option('tags')
 				},
-				dest: {
-					auto: 'tmp/rules.js',
-					descriptions: 'doc/rule-descriptions.md'
-				}
+				files: langs.map(function(lang) {
+					return {
+						src: ['<%= concat.commons.dest %>'],
+						dest: {
+							auto: 'tmp/rules' + lang + '.js',
+							descriptions: 'doc/rule-descriptions' + lang + '.md'
+						}
+					};
+				})
 			}
 		},
-		langs : {
+		'add-locale': {
+			newLang: {
+				options: {
+					lang: grunt.option('lang')
+				},
+				src: ['<%= concat.commons.dest %>'],
+				dest: './locales/' + (grunt.option('lang') || 'new-locale') + '.json'
+			}
+		},
+		langs: {
 			generate: {
-				check: 'lib/checks/language/valid-lang'
+				check: 'lib/commons/utils/valid-langs'
 			}
 		},
 		validate: {
-			tools: {
-				options: {
-					type: 'tool'
-				},
-				src: 'lib/tools/**/*.json'
-			},
 			check: {
 				options: {
 					type: 'check'
@@ -101,52 +243,59 @@ module.exports = function (grunt) {
 			}
 		},
 		uglify: {
-			lib: {
-				files: [{
-					src: ['<%= concat.engine.dest %>'],
-					dest: 'dist/axe.min.js'
-				}],
-				options: {
-					preserveComments: 'some'
-				}
-			},
 			beautify: {
-				files: [{
-					src: ['<%= concat.engine.dest %>'],
-					dest: '<%= concat.engine.dest %>'
-				}],
+				files: langs.map(function(lang, i) {
+					return {
+						src: ['<%= concat.engine.files[' + i + '].dest %>'],
+						dest: '<%= concat.engine.files[' + i + '].dest %>'
+					};
+				}),
 				options: {
 					mangle: false,
 					compress: false,
 					beautify: {
 						beautify: true,
+						ascii_only: true,
 						indent_level: 2,
-						bracketize: true,
+						braces: true,
 						quote_style: 1
 					},
-					preserveComments: 'some'
+					output: {
+						comments: /^\/*! axe/
+					}
+				}
+			},
+			minify: {
+				files: langs.map(function(lang, i) {
+					return {
+						src: ['<%= concat.engine.files[' + i + '].dest %>'],
+						dest: './axe' + lang + '.min.js'
+					};
+				}),
+				options: {
+					output: {
+						comments: /^\/*! axe/
+					},
+					mangle: {
+						reserved: ['commons', 'utils', 'axe', 'window', 'document']
+					}
 				}
 			}
 		},
-		copy: {
-			manifests: {
-				files: [{
-					src: ['package.json'],
-					dest: 'dist/'
-				}, {
-					src: ['README.md'],
-					dest: 'dist/'
-				}, {
-					src: ['bower.json'],
-					dest: 'dist/'
-				}, {
-					src: ['LICENSE'],
-					dest: 'dist/'
-				}]
-			}
+		'file-exists': {
+			data: langs.reduce(function(out, lang) {
+				out.push('axe' + lang + '.js');
+				out.push('axe' + lang + '.min.js');
+				return out;
+			}, [])
 		},
 		watch: {
-			files: ['lib/**/*', 'test/**/*.js', 'Gruntfile.js'],
+			files: [
+				'lib/**/*',
+				'test/**/*.js',
+				'test/integration/**/!(index).{html,json}',
+				'Gruntfile.js'
+			],
 			tasks: ['build', 'testconfig', 'fixture']
 		},
 		testconfig: {
@@ -157,63 +306,74 @@ module.exports = function (grunt) {
 		},
 		fixture: {
 			engine: {
-				src: '<%= concat.engine.src %>',
+				src: ['<%= concat.engine.coreFiles %>'],
 				dest: 'test/core/index.html',
 				options: {
 					fixture: 'test/runner.tmpl',
 					testCwd: 'test/core',
 					data: {
-						title: 'aXe Core Tests'
+						title: 'Axe Core Tests'
 					}
 				}
 			},
 			checks: {
 				src: [
-					'<%= concat.engine.dest %>',
+					'<%= concat.engine.files[0].dest %>',
 					'build/test/engine.js',
-					'<%= configure.rules.dest.auto %>'
+					'<%= configure.rules.tmp %>'
 				],
 				dest: 'test/checks/index.html',
 				options: {
 					fixture: 'test/runner.tmpl',
 					testCwd: 'test/checks',
 					data: {
-						title: 'aXe Check Tests'
+						title: 'Axe Check Tests'
 					}
 				}
 			},
 			commons: {
 				src: [
-					'<%= concat.engine.dest %>',
+					'<%= concat.engine.files[0].dest %>',
 					'build/test/engine.js',
-					'<%= configure.rules.dest.auto %>'
+					'<%= configure.rules.tmp %>'
 				],
 				dest: 'test/commons/index.html',
 				options: {
 					fixture: 'test/runner.tmpl',
 					testCwd: 'test/commons',
 					data: {
-						title: 'aXe Commons Tests'
+						title: 'Axe Commons Tests'
+					}
+				}
+			},
+			ruleMatches: {
+				src: [
+					'<%= concat.engine.files[0].dest %>',
+					'build/test/engine.js',
+					'<%= configure.rules.tmp %>'
+				],
+				dest: 'test/rule-matches/index.html',
+				options: {
+					fixture: 'test/runner.tmpl',
+					testCwd: 'test/rule-matches',
+					data: {
+						title: 'Axe Rule Matches Tests'
 					}
 				}
 			},
 			integration: {
-				src: ['<%= concat.engine.dest %>'],
+				src: ['<%= concat.engine.files[0].dest %>'],
 				dest: 'test/integration/rules/index.html',
 				options: {
 					fixture: 'test/runner.tmpl',
 					testCwd: 'test/integration/rules',
 					tests: ['../../../tmp/integration-tests.js', 'runner.js'],
 					data: {
-						title: 'aXe Integration Tests'
+						title: 'Axe Integration Tests'
 					}
 				}
 			}
 		},
-		mocha: testConfig(grunt),
-		'test-webdriver': testConfig(grunt, {
-			browser: grunt.option('browser') || 'firefox'
-		}),
 		connect: {
 			test: {
 				options: {
@@ -223,26 +383,51 @@ module.exports = function (grunt) {
 				}
 			}
 		},
-		jshint: {
-			axe: {
-				options: {
-					jshintrc: true,
-					reporter: grunt.option('report') ? 'checkstyle' : undefined,
-					reporterOutput: grunt.option('report') ? 'tmp/lint.xml' : undefined
-				},
-				src: ['lib/**/*.js', 'test/**/*.js', 'build/tasks/**/*.js', 'doc/**/*.js', 'Gruntfile.js']
+		run: {
+			npm_run_imports: {
+				cmd: 'node',
+				args: ['./build/imports-generator']
+			},
+			npm_run_testHeadless: {
+				cmd: 'npm',
+				args: ['run', 'test:headless']
 			}
 		}
 	});
 
+	grunt.registerTask('translate', [
+		'pre-build',
+		'validate',
+		'webpack',
+		'concat:commons',
+		'add-locale'
+	]);
+	grunt.registerTask('pre-build', ['clean', 'run:npm_run_imports']);
+	grunt.registerTask('build', [
+		'pre-build',
+		'validate',
+		'webpack',
+		'concat:commons',
+		'configure',
+		'babel',
+		'concat:engine',
+		'uglify',
+		'aria-supported'
+	]);
+	grunt.registerTask('prepare', [
+		'build',
+		'file-exists',
+		'testconfig',
+		'fixture',
+		'connect'
+	]);
 	grunt.registerTask('default', ['build']);
-
-	grunt.registerTask('build', ['clean', 'validate', 'concat:commons', 'configure',
-		'concat:engine', 'copy', 'nodeify', 'uglify']);
-
-	grunt.registerTask('test', ['build',  'testconfig', 'fixture', 'connect',
-		'mocha', 'jshint']);
-
-	grunt.registerTask('test-browser', ['build',  'testconfig', 'fixture', 'connect',
-		'test-webdriver', 'jshint']);
+	grunt.registerTask('dev', ['prepare', 'watch']);
+	grunt.registerTask('test-fast', ['prepare', 'run:npm_run_testHeadless']);
+	grunt.registerTask('test', [
+		'prepare',
+		'run:npm_run_testHeadless',
+		'parallel'
+	]);
+	grunt.registerTask('ci-build', ['prepare', 'parallel']);
 };

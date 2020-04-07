@@ -1,19 +1,13 @@
 {
-  "id": "aria-roles",
-  "selector": "[role]",
-  "tags": [
-    "wcag2a",
-    "wcag411"
-  ],
-  "metadata": {
-    "description": "Ensures all elements with a role attribute use a valid value",
-    "help": "ARIA roles used must conform to valid values",
-    "helpUrl": "https://dequeuniversity.com/rules/axe/1.1/aria-roles"
-  },
-  "all": [],
-  "any": [],
-  "none": [
-    "invalidrole",
-    "abstractrole"
-  ]
+	"id": "aria-roles",
+	"selector": "[role]",
+	"matches": "no-empty-role-matches.js",
+	"tags": ["cat.aria", "wcag2a", "wcag412"],
+	"metadata": {
+		"description": "Ensures all elements with a role attribute use a valid value",
+		"help": "ARIA roles used must conform to valid values"
+	},
+	"all": [],
+	"any": [],
+	"none": ["fallbackrole", "invalidrole", "abstractrole", "unsupportedrole"]
 }

@@ -1,11 +1,12 @@
 {
-  "id": "has-th",
-  "evaluate": "has-th.js",
-  "metadata": {
-    "impact": "serious",
-    "messages": {
-      "pass": "Layout table does not use <th> elements",
-      "fail": "Layout table uses <th> elements"
-    }
-  }
+	"id": "has-th",
+	"evaluate": "has-th.js",
+	"deprecated": true,
+	"metadata": {
+		"impact": "serious",
+		"messages": {
+			"pass": "Layout table does not use <th> elements",
+			"fail": "Layout table uses <th> elements"
+		}
+	}
 }

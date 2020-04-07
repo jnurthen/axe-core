@@ -1,21 +1,20 @@
 {
-  "id": "audio-caption",
-  "selector": "audio",
-  "excludeHidden": false,
-  "tags": [
-    "wcag2a",
-    "wcag122",
-    "section508",
-    "section508a"
-  ],
-  "metadata": {
-    "description": "Ensures <audio> elements have captions",
-    "help": "<audio> elements must have a captions track",
-    "helpUrl": "https://dequeuniversity.com/rules/axe/1.1/audio-caption"
-  },
-  "all": [],
-  "any": [],
-  "none": [
-    "caption"
-  ]
+	"id": "audio-caption",
+	"selector": "audio",
+	"enabled": false,
+	"excludeHidden": false,
+	"tags": [
+		"cat.time-and-media",
+		"wcag2a",
+		"wcag121",
+		"section508",
+		"section508.22.a"
+	],
+	"metadata": {
+		"description": "Ensures <audio> elements have captions",
+		"help": "<audio> elements must have a captions track"
+	},
+	"all": [],
+	"any": [],
+	"none": ["caption"]
 }

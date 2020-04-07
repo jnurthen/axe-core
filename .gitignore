@@ -1,7 +1,28 @@
-tmp
-dist
-bower_components
+# defaults
 node_modules
+npm-shrinkwrap.json
+doc/examples/*/package-lock.json
+.DS_Store
+.vscode
+
+# tmp - `dev` time generated assets
+tmp
+
+# test - runner generated assets
 test/*/index.html
 test/integration/*/index.html
-.grunt
+
+# dist
+axe.js
+axe.*.js
+
+
+# generated jsdoc api docs
+doc/api/*
+
+# ts generated file
+typings/axe-core/axe-core-tests.js
+
+# doc
+doc/rule-descriptions.*.md
+

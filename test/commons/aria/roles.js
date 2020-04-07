@@ -1,217 +1,253 @@
-
-describe('aria.isValidRole', function () {
+describe('aria.isValidRole', function() {
 	'use strict';
 
-	it('should return true if role is found in the lookup table', function () {
-		var orig = commons.aria._lut.role;
-		commons.aria._lut.role = {
-			'cats': true
+	it('should return true if role is found in the lookup table', function() {
+		var orig = axe.commons.aria.lookupTable.role;
+		axe.commons.aria.lookupTable.role = {
+			cats: true
 		};
-		assert.isTrue(commons.aria.isValidRole('cats'));
-		commons.aria._lut.role = orig;
-
+		assert.isTrue(axe.commons.aria.isValidRole('cats'));
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should return false if role is not found in the lut', function () {
-		assert.isFalse(commons.aria.isValidRole('cats'));
+	it('should return false if role is not found in the lookup table', function() {
+		assert.isFalse(axe.commons.aria.isValidRole('cats'));
+	});
 
+	it('returns false for abstract roles by default', function() {
+		assert.isFalse(axe.commons.aria.isValidRole('input'));
+	});
+
+	it('returns true for abstract roles with { allowAbstract: true } ', function() {
+		assert.isTrue(
+			axe.commons.aria.isValidRole('input', { allowAbstract: true })
+		);
 	});
 });
 
-describe('aria.getRolesWithNameFromContents', function () {
+describe('aria.getRolesWithNameFromContents', function() {
 	'use strict';
 
-	it('should return array if nameFrom contents is found in the lookup table', function () {
-		var orig = commons.aria._lut.role;
-		commons.aria._lut.role = {
-			'dogs': {
+	it('should return array if nameFrom contents is found in the lookup table', function() {
+		var orig = axe.commons.aria.lookupTable.role;
+		axe.commons.aria.lookupTable.role = {
+			dogs: {
 				type: 'things',
 				nameFrom: ['author', 'contents']
 			},
-			'cats': {
+			cats: {
 				type: 'stuff',
 				nameFrom: ['author']
 			}
 		};
-		assert.deepEqual(commons.aria.getRolesWithNameFromContents(), ['dogs']);
-		commons.aria._lut.role = orig;
-
+		assert.deepEqual(axe.commons.aria.getRolesWithNameFromContents(), ['dogs']);
+		axe.commons.aria.lookupTable.role = orig;
 	});
 });
 
-describe('aria.getRolesByType', function () {
+describe('aria.getRolesByType', function() {
 	'use strict';
 
-	it('should return array if roletype is found in the lookup table', function () {
-		var orig = commons.aria._lut.role;
-		commons.aria._lut.role = {
-			'dogs': {
+	it('should return array if roletype is found in the lookup table', function() {
+		var orig = axe.commons.aria.lookupTable.role;
+		axe.commons.aria.lookupTable.role = {
+			dogs: {
 				type: 'things'
 			},
-			'cats': {
+			cats: {
 				type: 'stuff'
 			}
 		};
-		assert.deepEqual(commons.aria.getRolesByType('stuff'), ['cats']);
-		commons.aria._lut.role = orig;
-
+		assert.deepEqual(axe.commons.aria.getRolesByType('stuff'), ['cats']);
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should return empty array if role is not found in the lut', function () {
-		assert.deepEqual(commons.aria.getRolesByType('blahblahblah'), []);
+	it('should return empty array if role is not found in the lookup table', function() {
+		assert.deepEqual(axe.commons.aria.getRolesByType('blahblahblah'), []);
 	});
 });
 
-describe('aria.getRoleType', function () {
+describe('aria.getRoleType', function() {
 	'use strict';
 
-	it('should return true if role is found in the lookup table', function () {
-		var orig = commons.aria._lut.role;
-		commons.aria._lut.role = {
-			'cats': {
+	it('should return true if role is found in the lookup table', function() {
+		var orig = axe.commons.aria.lookupTable.role;
+		axe.commons.aria.lookupTable.role = {
+			cats: {
 				type: 'stuff'
 			}
 		};
-		assert.equal(commons.aria.getRoleType('cats'), 'stuff');
-		commons.aria._lut.role = orig;
-
+		assert.equal(axe.commons.aria.getRoleType('cats'), 'stuff');
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should return null if role is not found in the lut', function () {
-		assert.isNull(commons.aria.getRoleType('cats'));
+	it('should return null if role is not found in the lookup table', function() {
+		assert.isNull(axe.commons.aria.getRoleType('cats'));
 	});
 });
 
-describe('aria.requiredOwned', function () {
+describe('aria.requiredOwned', function() {
 	'use strict';
 
 	var orig;
-	beforeEach(function () {
-		orig = commons.aria._lut.role;
+	beforeEach(function() {
+		orig = axe.commons.aria.lookupTable.role;
 	});
 
-	afterEach(function () {
-		commons.aria._lut.role = orig;
+	afterEach(function() {
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should returned the owned property for the proper role', function () {
-		commons.aria._lut.role = {
-			'cats': {
+	it('should returned the owned property for the proper role', function() {
+		axe.commons.aria.lookupTable.role = {
+			cats: {
 				owned: 'yes'
 			}
 		};
-		assert.equal(commons.aria.requiredOwned('cats'), 'yes');
-
+		assert.equal(axe.commons.aria.requiredOwned('cats'), 'yes');
 	});
 
-	it('should return null if there are no required owned nodes', function () {
-		commons.aria._lut.role = {};
-		var result = commons.aria.requiredOwned('cats');
+	it('should return null if there are no required owned nodes', function() {
+		axe.commons.aria.lookupTable.role = {};
+		var result = axe.commons.aria.requiredOwned('cats');
 
 		assert.isNull(result);
-
 	});
 });
 
-describe('aria.requiredContext', function () {
+describe('aria.requiredContext', function() {
 	'use strict';
 
 	var orig;
-	beforeEach(function () {
-		orig = commons.aria._lut.role;
+	beforeEach(function() {
+		orig = axe.commons.aria.lookupTable.role;
 	});
 
-	afterEach(function () {
-		commons.aria._lut.role = orig;
+	afterEach(function() {
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should returned the context property for the proper role', function () {
-		commons.aria._lut.role = {
-			'cats': {
+	it('should returned the context property for the proper role', function() {
+		axe.commons.aria.lookupTable.role = {
+			cats: {
 				context: 'yes'
 			}
 		};
-		assert.equal(commons.aria.requiredContext('cats'), 'yes');
-
+		assert.equal(axe.commons.aria.requiredContext('cats'), 'yes');
 	});
 
-	it('should return null if there are no required context nodes', function () {
-		commons.aria._lut.role = {};
-		var result = commons.aria.requiredContext('cats');
+	it('should return null if there are no required context nodes', function() {
+		axe.commons.aria.lookupTable.role = {};
+		var result = axe.commons.aria.requiredContext('cats');
 
 		assert.isNull(result);
-
 	});
 });
 
-describe('aria.implicitNodes', function () {
+describe('aria.implicitNodes', function() {
 	'use strict';
 
 	var orig;
-	beforeEach(function () {
-		orig = commons.aria._lut.role;
+	beforeEach(function() {
+		orig = axe.commons.aria.lookupTable.role;
 	});
 
-	afterEach(function () {
-		commons.aria._lut.role = orig;
+	afterEach(function() {
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should return the implicit property for the proper role', function () {
-		commons.aria._lut.role = {
-			'cats': {
+	it('should return the implicit property for the proper role', function() {
+		axe.commons.aria.lookupTable.role = {
+			cats: {
 				implicit: 'yes'
 			}
 		};
-		assert.equal(commons.aria.implicitNodes('cats'), 'yes');
-
+		assert.equal(axe.commons.aria.implicitNodes('cats'), 'yes');
 	});
 
-	it('should return null if there are no implicit roles', function () {
-		commons.aria._lut.role = {};
-		var result = commons.aria.implicitNodes('cats');
+	it('should return null if there are no implicit roles', function() {
+		axe.commons.aria.lookupTable.role = {};
+		var result = axe.commons.aria.implicitNodes('cats');
 
 		assert.isNull(result);
-
 	});
 });
 
-describe('aria.implicitRole', function () {
+describe('aria.implicitRole', function() {
 	'use strict';
 
 	var fixture = document.getElementById('fixture');
 	var orig;
-	beforeEach(function () {
-		orig = commons.aria._lut.role;
+	beforeEach(function() {
+		orig = axe.commons.aria.lookupTable.role;
 	});
 
-	afterEach(function () {
+	afterEach(function() {
 		fixture.innerHTML = '';
-		commons.aria._lut.role = orig;
+		axe.commons.aria.lookupTable.role = orig;
 	});
 
-	it('should find the first matching role', function () {
+	it('should find the first optimal matching role', function() {
 		var node = document.createElement('div');
+		node.setAttribute('aria-required', 'true');
+
 		node.id = 'cats';
 		fixture.appendChild(node);
 
-		commons.aria._lut.role = {
-			'cats': {
+		axe.commons.aria.lookupTable.role = {
+			cats: {
+				implicit: ['div[id="cats"]']
+			},
+			dogs: {
+				implicit: ['div[id="cats"]']
+			},
+			dinosaurs: {
+				attributes: {
+					allowed: ['aria-required']
+				},
 				implicit: ['div[id="cats"]']
 			}
 		};
-		assert.equal(commons.aria.implicitRole(node), 'cats');
 
+		assert.equal(axe.commons.aria.implicitRole(node), 'dinosaurs');
 	});
 
-	it('should return null if there is no matching implicit role', function () {
+	it('should find the first optimal matching role when multiple optimal matches are available', function() {
+		var node = document.createElement('div');
+		node.setAttribute('aria-required', 'true');
+
+		node.id = 'cats';
+		fixture.appendChild(node);
+
+		axe.commons.aria.lookupTable.role = {
+			cats: {
+				implicit: ['div[id="cats"]']
+			},
+			dogs: {
+				attributes: {
+					allowed: ['aria-required']
+				},
+				implicit: ['div[id="cats"]']
+			},
+			dinosaurs: {
+				attributes: {
+					allowed: ['aria-required']
+				},
+				implicit: ['div[id="cats"]']
+			}
+		};
+
+		assert.equal(axe.commons.aria.implicitRole(node), 'dogs');
+	});
+
+	it('should return null if there is no matching implicit role', function() {
 		var node = document.createElement('div');
 		node.id = 'cats';
 		fixture.appendChild(node);
 
-		commons.aria._lut.role = {};
-		var result = commons.aria.implicitRole(node);
+		axe.commons.aria.lookupTable.role = {};
+		var result = axe.commons.aria.implicitRole(node);
 
 		assert.isNull(result);
-
 	});
 });

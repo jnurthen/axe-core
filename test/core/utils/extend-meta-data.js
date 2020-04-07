@@ -1,14 +1,13 @@
-
-describe('utils.extend', function () {
+describe('axe.utils.extend', function() {
 	'use strict';
 
-	it('should merge properties', function () {
+	it('should merge properties', function() {
 		var src = {
 			cats: 'fail',
 			dogs: 'fail'
 		};
 
-		utils.extendMetaData(src, {
+		axe.utils.extendMetaData(src, {
 			cats: 'meow',
 			dogs: 'woof'
 		});
@@ -17,13 +16,13 @@ describe('utils.extend', function () {
 		assert.equal(src.dogs, 'woof');
 	});
 
-	it('should execute any found functions', function () {
+	it('should execute any found functions', function() {
 		var src = {
 			cats: 'fail',
 			dogs: 'fail'
 		};
-		utils.extendMetaData(src, {
-			cats: function (ctxt) {
+		axe.utils.extendMetaData(src, {
+			cats: function(ctxt) {
 				assert.equal(ctxt, src);
 				return 'meow';
 			},
@@ -33,13 +32,13 @@ describe('utils.extend', function () {
 		assert.equal(src.cats, 'meow');
 		assert.equal(src.dogs, 'woof');
 	});
-	it('should catch exceptions in functions and default to `null`', function () {
+	it('should catch exceptions in functions and default to `null`', function() {
 		var src = {
 			cats: 'fail',
 			dogs: 'fail'
 		};
-		utils.extendMetaData(src, {
-			cats: function () {
+		axe.utils.extendMetaData(src, {
+			cats: function() {
 				throw new Error('hehe');
 			},
 			dogs: 'woof'
@@ -48,5 +47,4 @@ describe('utils.extend', function () {
 		assert.isNull(src.cats);
 		assert.equal(src.dogs, 'woof');
 	});
-
 });

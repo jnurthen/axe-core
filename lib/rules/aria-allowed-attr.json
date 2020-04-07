@@ -1,17 +1,12 @@
 {
-  "id": "aria-allowed-attr",
-  "tags": [
-    "wcag2a",
-    "wcag411"
-  ],
-  "metadata": {
-    "description": "Ensures ARIA attributes are allowed for an element's role",
-    "help": "Elements must only use allowed ARIA attributes",
-    "helpUrl": "https://dequeuniversity.com/rules/axe/1.1/aria-allowed-attr"
-  },
-  "all": [],
-  "any": [
-    "aria-allowed-attr"
-  ],
-  "none": []
+	"id": "aria-allowed-attr",
+	"matches": "aria-allowed-attr-matches.js",
+	"tags": ["cat.aria", "wcag2a", "wcag412"],
+	"metadata": {
+		"description": "Ensures ARIA attributes are allowed for an element's role",
+		"help": "Elements must only use allowed ARIA attributes"
+	},
+	"all": [],
+	"any": ["aria-allowed-attr"],
+	"none": ["aria-unsupported-attr"]
 }
